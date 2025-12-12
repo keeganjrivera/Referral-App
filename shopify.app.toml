@@ -2,7 +2,7 @@
 
 client_id = "80f257f54743ca259e3dc67b2a3694b8"
 name = "Referrals"
-application_url = "https://dev.shopify.com/dashboard/167278187/apps/302742929409/versions/808156659713"
+application_url = "https://pp-referral-program-34f504a1d961.herokuapp.com/"
 embedded = true
 
 [build]
@@ -32,4 +32,6 @@ api_version = "2026-01"
 scopes = "read_customers,read_orders,write_customers,write_discounts,write_orders,write_products"
 
 [auth]
-redirect_urls = [ "https://YOUR-ACTUAL-APP-URL.shopifyapps.com/api/auth" ]
+redirect_urls = [ "https://pp-referral-program-34f504a1d961.herokuapp.com/api/auth",
+                  "https://pp-referral-program-34f504a1d961.herokuapp.com/auth/callback"
+]
