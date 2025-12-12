@@ -1,9 +1,5 @@
 {
   "name": "personalized-pool-referrals-v2",
-  "engines": {
-  "node": "24.x",
-  "npm": "10.x"
-  },
   "private": true,
   "scripts": {
     "build": "react-router build",
