@@ -1,0 +1,35 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "80f257f54743ca259e3dc67b2a3694b8"
+name = "Referrals"
+application_url = "https://dev.shopify.com/dashboard/167278187/apps/302742929409/versions/808156659713"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-01"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "customers/create" ]
+  uri = "/webhooks/customers/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_orders,write_customers,write_discounts,write_orders,write_products"
+
+[auth]
+redirect_urls = [ "https://YOUR-ACTUAL-APP-URL.shopifyapps.com/api/auth" ]

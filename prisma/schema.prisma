@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  referrerId     String   // Shopify Customer ID
+  referrerEmail  String
+  referrerName   String
+  refereeId      String   // Shopify Customer ID
+  refereeEmail   String
+  refereeName    String
+  orderId        String   // Shopify Order ID
+  orderNumber    String
+  orderTotal     String
+  referralCode   String
+  fraudFlags     String   // JSON array of flags
+  status         String   @default("pending") // pending, approved, rejected, refunded
+  refundAmount   String   @default("50.00")
+  
+  // NEW FIELDS
+  rejectionReason String?  // Why the referral was rejected (if applicable)
+  referralSource  String?  // How the code was shared: email_form, manual, whatsapp, facebook, etc.
+  refereeRevenue  String?  // Total revenue from the referee's order(s)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
