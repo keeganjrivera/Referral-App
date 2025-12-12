@@ -1,4 +1,1 @@
-
-> start
-> react-router-serve ./build/server/index.js
-
+web: npm start 
