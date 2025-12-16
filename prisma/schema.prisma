@@ -46,7 +46,6 @@ model Referral {
   fraudFlags     String   // JSON array of flags
   status         String   @default("pending") // pending, approved, rejected, refunded
   refundAmount   String   @default("50.00")
-  rewardAmount   Decimal? @db.Decimal(10, 2) // Locked-in reward at creation time (optional until migration runs)
 
   // NEW FIELDS
   rejectionReason String?  // Why the referral was rejected (if applicable)

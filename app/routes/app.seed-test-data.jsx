@@ -38,7 +38,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify([]),
       status: "pending",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -58,7 +57,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify(["SAME_EMAIL"]),
       status: "pending",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -78,7 +76,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify(["SAME_NAME"]),
       status: "pending",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -98,7 +95,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify(["LOW_ORDER_VALUE"]),
       status: "pending",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -118,7 +114,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify(["SAME_EMAIL", "SAME_NAME", "LOW_ORDER_VALUE", "SAME_ADDRESS"]),
       status: "pending",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -138,7 +133,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify([]),
       status: "approved",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
@@ -158,7 +152,6 @@ export const action = async ({ request }) => {
       fraudFlags: JSON.stringify(["SAME_EMAIL"]),
       status: "rejected",
       refundAmount: "50.00",
-      rewardAmount: 50.00
     }
   });
 
