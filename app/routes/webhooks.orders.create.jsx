@@ -223,8 +223,8 @@ export const action = async ({ request }) => {
     console.log(`Created default settings for shop ${shop}`);
   }
 
-  // Parse reward amount from settings
-  const rewardAmount = parseFloat(settings.refundAmount || "50.00");
+  // Parse reward amount from settings (default to 50.00 if not set)
+  const rewardAmount = parseFloat(settings?.refundAmount || "50.00");
   console.log(`Reward amount for this referral: $${rewardAmount}`);
 
   // Store referral in database

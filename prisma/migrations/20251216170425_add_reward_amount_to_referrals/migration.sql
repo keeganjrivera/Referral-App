@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Referral" ADD COLUMN "rewardAmount" DECIMAL(10,2) NOT NULL DEFAULT 50.00;
+ALTER TABLE "Referral" ADD COLUMN "rewardAmount" DECIMAL(10,2);
