@@ -9,7 +9,7 @@ async function fixMigration() {
     );
     console.log('✅ Deleted failed migration from database');
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error deleting migration:', error.message);
   } finally {
     await prisma.$disconnect();
   }
