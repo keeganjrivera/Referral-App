@@ -46,12 +46,20 @@ model Referral {
   fraudFlags     String   // JSON array of flags
   status         String   @default("pending") // pending, approved, rejected, refunded
   refundAmount   String   @default("50.00")
-  
+
   // NEW FIELDS
   rejectionReason String?  // Why the referral was rejected (if applicable)
   referralSource  String?  // How the code was shared: email_form, manual, whatsapp, facebook, etc.
   refereeRevenue  String?  // Total revenue from the referee's order(s)
-  
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  // Performance indexes for common queries
+  @@index([status])
+  @@index([updatedAt])
+  @@index([referrerId])
+  @@index([createdAt])
+  @@index([status, updatedAt])
+  @@index([referrerId, status])
 }

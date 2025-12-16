@@ -8,26 +8,50 @@ import db from "../db.server";
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
-  // Get all customers
-  const customersResponse = await admin.graphql(
-    `#graphql
-      query {
-        customers(first: 250) {
-          edges {
-            node {
-              id
-              firstName
-              lastName
-              email
-              numberOfOrders
-              metafield(namespace: "custom", key: "referral_code") {
-                value
+  // Run queries in parallel for better performance
+  const [customersResponse, pendingReferrals, recentReferrals, statusCounts, totalReferrals] = await Promise.all([
+    // Get customers
+    admin.graphql(
+      `#graphql
+        query {
+          customers(first: 250) {
+            edges {
+              node {
+                id
+                firstName
+                lastName
+                email
+                numberOfOrders
+                metafield(namespace: "custom", key: "referral_code") {
+                  value
+                }
               }
             }
           }
-        }
-      }`
-  );
+        }`
+    ),
+
+    // Get pending referrals (sorted by oldest first)
+    db.referral.findMany({
+      where: { status: "pending" },
+      orderBy: { createdAt: "asc" }
+    }),
+
+    // Get recent referrals for history (limit to 500 most recent instead of ALL)
+    db.referral.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 500
+    }),
+
+    // Get counts by status using aggregation
+    db.referral.groupBy({
+      by: ['status'],
+      _count: { status: true }
+    }),
+
+    // Get total count
+    db.referral.count()
+  ]);
 
   const customersJson = await customersResponse.json();
   const customers = customersJson.data.customers.edges.map(edge => ({
@@ -38,68 +62,56 @@ export const loader = async ({ request }) => {
     referralCode: edge.node.metafield?.value || ''
   }));
 
-  // Get all referrals - sorted by oldest first (ascending)
-  const pendingReferrals = await db.referral.findMany({
-    where: { status: "pending" },
-    orderBy: { createdAt: "asc" }
-  });
+  // Calculate analytics efficiently
+  const statusMap = Object.fromEntries(statusCounts.map(s => [s.status, s._count.status]));
+  const referralsByStatus = {
+    pending: statusMap.pending || 0,
+    refunded: statusMap.refunded || 0,
+    rejected: statusMap.rejected || 0,
+  };
 
-  const allReferrals = await db.referral.findMany({
-    orderBy: { updatedAt: "desc" }
-  });
+  // Calculate totals from recent referrals only (approximate analytics)
+  const refundedReferrals = recentReferrals.filter(r => r.status === 'refunded');
+  const totalRefunds = refundedReferrals.length;
+  const totalRefundAmount = refundedReferrals.reduce((sum, r) => sum + parseFloat(r.refundAmount), 0);
 
-  // Calculate analytics
-  const totalRefunds = allReferrals.filter(r => r.status === 'refunded').length;
-  const totalRefundAmount = allReferrals
-    .filter(r => r.status === 'refunded')
-    .reduce((sum, r) => sum + parseFloat(r.refundAmount), 0);
-  
   // Calculate total revenue from referrals
-  const totalReferralRevenue = allReferrals
-    .filter(r => r.status === 'refunded' && r.refereeRevenue)
+  const totalReferralRevenue = refundedReferrals
+    .filter(r => r.refereeRevenue)
     .reduce((sum, r) => sum + parseFloat(r.refereeRevenue), 0);
 
   // Calculate ROI
-  const referralCost = totalRefundAmount; // Cost: $50 per referral
-  const referralROI = referralCost > 0 
+  const referralCost = totalRefundAmount;
+  const referralROI = referralCost > 0
     ? (((totalReferralRevenue - referralCost) / referralCost) * 100).toFixed(1)
     : 0;
 
   // Referral source breakdown
   const referralsBySource = {};
-  allReferrals.forEach(r => {
+  recentReferrals.forEach(r => {
     const source = r.referralSource || 'unknown';
     referralsBySource[source] = (referralsBySource[source] || 0) + 1;
   });
 
-  const totalReferrals = allReferrals.length;
   const activeReferrers = customers.filter(c => c.referralCode).length;
-  
-  const referralsByStatus = {
-    pending: allReferrals.filter(r => r.status === 'pending').length,
-    refunded: allReferrals.filter(r => r.status === 'refunded').length,
-    rejected: allReferrals.filter(r => r.status === 'rejected').length,
-  };
-  
+
   // Calculate fraud detection stats
-  const referralsWithFraud = allReferrals.filter(r => {
+  const referralsWithFraud = recentReferrals.filter(r => {
     const flags = JSON.parse(r.fraudFlags || '[]');
     return flags.length > 0;
   }).length;
-  
-  const fraudDetectionRate = totalReferrals > 0 
-    ? ((referralsWithFraud / totalReferrals) * 100).toFixed(1)
+
+  const fraudDetectionRate = recentReferrals.length > 0
+    ? ((referralsWithFraud / recentReferrals.length) * 100).toFixed(1)
     : 0;
-  
+
   // Top referrers
   const referrerCounts = {};
-  allReferrals.forEach(r => {
-    if (r.status === 'refunded') {
-      const key = `${r.referrerEmail}|${r.referrerName}`;
-      referrerCounts[key] = (referrerCounts[key] || 0) + 1;
-    }
+  refundedReferrals.forEach(r => {
+    const key = `${r.referrerEmail}|${r.referrerName}`;
+    referrerCounts[key] = (referrerCounts[key] || 0) + 1;
   });
-  
+
   const topReferrers = Object.entries(referrerCounts)
     .map(([key, count]) => {
       const [email, name] = key.split('|');
@@ -107,7 +119,7 @@ export const loader = async ({ request }) => {
     })
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
-  
+
   const analytics = {
     totalRefunds,
     totalRefundAmount,
@@ -122,7 +134,7 @@ export const loader = async ({ request }) => {
     referralsBySource
   };
 
-  return { customers, pendingReferrals, allReferrals, analytics };
+  return { customers, pendingReferrals, allReferrals: recentReferrals, analytics };
 };
 
 export const action = async ({ request }) => {
@@ -141,45 +153,14 @@ export const action = async ({ request }) => {
       return { success: false, message: "Referral not found" };
     }
     
-    // Check if referrer has an active subscription
-    const subscriptionCheckResponse = await admin.graphql(
-      `#graphql
-        query getCustomer($id: ID!) {
-          customer(id: $id) {
-            id
-            email
-            orders(first: 10, query: "financial_status:paid") {
-              edges {
-                node {
-                  id
-                }
-              }
-            }
-          }
-        }`,
-      {
-        variables: {
-          id: referral.referrerId
-        }
-      }
-    );
-
-    const subscriptionCheckJson = await subscriptionCheckResponse.json();
-    const referrerHasPaidOrders = subscriptionCheckJson.data?.customer?.orders?.edges?.length > 0;
-
-    if (!referrerHasPaidOrders) {
-      return {
-        success: false,
-        message: "⚠️ Referrer does not have an active subscription. Cannot approve refund for cancelled subscribers."
-      };
-    }    
-
+    // Combine subscription check and order fetch into single query for better performance
     try {
-      // First, find the REFERRER's most recent paid order
       const referrerOrdersResponse = await admin.graphql(
         `#graphql
           query getCustomerOrders($customerId: ID!) {
             customer(id: $customerId) {
+              id
+              email
               orders(first: 10, reverse: true, query: "financial_status:paid OR financial_status:partially_paid") {
                 edges {
                   node {
@@ -207,10 +188,11 @@ export const action = async ({ request }) => {
       const referrerOrdersJson = await referrerOrdersResponse.json();
       const referrerOrders = referrerOrdersJson.data?.customer?.orders?.edges || [];
 
+      // Check if referrer has paid orders (active subscription)
       if (referrerOrders.length === 0) {
         return {
           success: false,
-          message: "Referrer has no paid orders to refund"
+          message: "⚠️ Referrer does not have an active subscription. Cannot approve refund for cancelled subscribers."
         };
       }
 

@@ -50,7 +50,8 @@ export default defineConfig({
   },
   plugins: [reactRouter(), tsconfigPaths()],
   build: {
-    assetsInlineLimit: 0,
+    assetsInlineLimit: 4096, // Inline assets smaller than 4KB as base64
+    chunkSizeWarningLimit: 1000, // Warn for chunks larger than 1MB
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],
