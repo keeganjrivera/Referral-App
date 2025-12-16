@@ -6,7 +6,24 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import db from "../db.server";
 
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+
+  // Get or create settings for this shop
+  let settings = await db.settings.findUnique({
+    where: { shop: session.shop }
+  });
+
+  if (!settings) {
+    settings = await db.settings.create({
+      data: {
+        shop: session.shop,
+        purchaseType: "Subscription",
+        discountPercentage: 10,
+        refundAmount: "50.00",
+        allowShippingCombos: true
+      }
+    });
+  }
 
   // Run queries in parallel for better performance
   const [customersResponse, pendingReferrals, recentReferrals, statusCounts, totalReferrals] = await Promise.all([
@@ -134,7 +151,7 @@ export const loader = async ({ request }) => {
     referralsBySource
   };
 
-  return { customers, pendingReferrals, allReferrals: recentReferrals, analytics };
+  return { customers, pendingReferrals, allReferrals: recentReferrals, analytics, settings };
 };
 
 export const action = async ({ request }) => {
@@ -574,11 +591,44 @@ export const action = async ({ request }) => {
     return { success: true, message: "Test data seeded - 5 test referrals created" };
   }
 
+  // Handle settings update
+  if (actionType === "updateSettings") {
+    const { session } = await authenticate.admin(request);
+    const purchaseType = formData.get("purchaseType");
+    const discountPercentage = parseInt(formData.get("discountPercentage"));
+    const refundAmount = formData.get("refundAmount");
+    const allowShippingCombos = formData.get("allowShippingCombos") === "true";
+
+    try {
+      await db.settings.upsert({
+        where: { shop: session.shop },
+        update: {
+          purchaseType,
+          discountPercentage,
+          refundAmount,
+          allowShippingCombos
+        },
+        create: {
+          shop: session.shop,
+          purchaseType,
+          discountPercentage,
+          refundAmount,
+          allowShippingCombos
+        }
+      });
+
+      return { success: true, message: "Program settings updated successfully" };
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      return { success: false, message: "Failed to update settings" };
+    }
+  }
+
   return { success: false };
 };
 
 export default function Referrals() {
-  const { customers, pendingReferrals, allReferrals, analytics } = useLoaderData();
+  const { customers, pendingReferrals, allReferrals, analytics, settings } = useLoaderData();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
   const [activeTab, setActiveTab] = useState("pending");
@@ -586,6 +636,13 @@ export default function Referrals() {
   const [historySearchQuery, setHistorySearchQuery] = useState("");
   const [rejectingReferralId, setRejectingReferralId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  // Settings state
+  const [showSettings, setShowSettings] = useState(false);
+  const [purchaseType, setPurchaseType] = useState(settings.purchaseType);
+  const [discountPercentage, setDiscountPercentage] = useState(settings.discountPercentage);
+  const [refundAmount, setRefundAmount] = useState(settings.refundAmount);
+  const [allowShippingCombos, setAllowShippingCombos] = useState(settings.allowShippingCombos);
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -637,6 +694,19 @@ export default function Referrals() {
 
   const seedTestData = () => {
     fetcher.submit({ actionType: "seed" }, { method: "POST" });
+  };
+
+  const saveSettings = () => {
+    fetcher.submit(
+      {
+        actionType: "updateSettings",
+        purchaseType,
+        discountPercentage: discountPercentage.toString(),
+        refundAmount,
+        allowShippingCombos: allowShippingCombos.toString()
+      },
+      { method: "POST" }
+    );
   };
 
   // Helper to display name or email
@@ -985,13 +1055,76 @@ export default function Referrals() {
                 {/* Program Rules Card */}
                 <s-card>
                   <s-stack direction="block" gap="base">
-                    <s-heading>Program Rules</s-heading>
-                    <s-unordered-list>
-                      <s-list-item>Referrer receives $50 refund after referee completes their first subscription order</s-list-item>
-                      <s-list-item>Referee receives 10% discount on their first subscription order</s-list-item>
-                      <s-list-item>Only applies to subscription orders (annual chemical kits)</s-list-item>
-                      <s-list-item>Only active subscribers are eligible to receive referral rewards</s-list-item>
-                    </s-unordered-list>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowSettings(!showSettings)}>
+                      <s-heading>Program Rules</s-heading>
+                      <span style={{ fontSize: '20px' }}>{showSettings ? '▼' : '▶'}</span>
+                    </div>
+
+                    {showSettings && (
+                      <s-stack direction="block" gap="base">
+                        <s-stack direction="block" gap="tight">
+                          <label style={{ fontWeight: 'bold' }}>Purchase Type</label>
+                          <select
+                            value={purchaseType}
+                            onChange={(e) => setPurchaseType(e.target.value)}
+                            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #c9cccf' }}
+                          >
+                            <option value="Subscription">Subscription</option>
+                            <option value="One-time">One-time</option>
+                            <option value="Any">Any Purchase</option>
+                          </select>
+                        </s-stack>
+
+                        <s-stack direction="block" gap="tight">
+                          <label style={{ fontWeight: 'bold' }}>Discount Percentage (%)</label>
+                          <input
+                            type="number"
+                            value={discountPercentage}
+                            onChange={(e) => setDiscountPercentage(parseInt(e.target.value))}
+                            min="0"
+                            max="100"
+                            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #c9cccf' }}
+                          />
+                        </s-stack>
+
+                        <s-stack direction="block" gap="tight">
+                          <label style={{ fontWeight: 'bold' }}>Refund Amount ($)</label>
+                          <input
+                            type="text"
+                            value={refundAmount}
+                            onChange={(e) => setRefundAmount(e.target.value)}
+                            placeholder="50.00"
+                            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #c9cccf' }}
+                          />
+                        </s-stack>
+
+                        <s-stack direction="block" gap="tight">
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="checkbox"
+                              checked={allowShippingCombos}
+                              onChange={(e) => setAllowShippingCombos(e.target.checked)}
+                            />
+                            <span style={{ fontWeight: 'bold' }}>Allow Combination with Shipping Discounts</span>
+                          </label>
+                        </s-stack>
+
+                        <s-button onClick={saveSettings} variant="primary">
+                          Save Settings
+                        </s-button>
+                      </s-stack>
+                    )}
+
+                    {!showSettings && (
+                      <s-unordered-list>
+                        <s-list-item>Referrer receives ${refundAmount} refund after referee completes their first {purchaseType.toLowerCase()} order</s-list-item>
+                        <s-list-item>Referee receives {discountPercentage}% discount on their first {purchaseType.toLowerCase()} order</s-list-item>
+                        <s-list-item>Only applies to {purchaseType.toLowerCase()} orders</s-list-item>
+                        <s-list-item>Only active subscribers are eligible to receive referral rewards</s-list-item>
+                        {allowShippingCombos && <s-list-item>Can be combined with shipping discounts</s-list-item>}
+                      </s-unordered-list>
+                    )}
+
                     <s-stack direction="inline" gap="tight">
                       <s-button onClick={generateCodes} variant="primary">
                         Generate Referral Codes for All Customers

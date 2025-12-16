@@ -63,3 +63,14 @@ model Referral {
   @@index([status, updatedAt])
   @@index([referrerId, status])
 }
+
+model Settings {
+  id                    String   @id @default(uuid())
+  shop                  String   @unique // Store identifier
+  purchaseType          String   @default("Subscription")
+  discountPercentage    Int      @default(10) // 10%
+  refundAmount          String   @default("50.00") // $50
+  allowShippingCombos   Boolean  @default(true) // Allow combination with shipping discounts
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
