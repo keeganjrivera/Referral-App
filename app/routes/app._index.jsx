@@ -90,7 +90,10 @@ export const loader = async ({ request }) => {
   // Calculate totals from recent referrals only (approximate analytics)
   const refundedReferrals = recentReferrals.filter(r => r.status === 'refunded');
   const totalRefunds = refundedReferrals.length;
-  const totalRefundAmount = refundedReferrals.reduce((sum, r) => sum + parseFloat(r.refundAmount || 0), 0);
+  const totalRefundAmount = refundedReferrals.reduce((sum, r) => {
+    const amount = r.rewardAmount ? parseFloat(r.rewardAmount) : parseFloat(r.refundAmount || 0);
+    return sum + amount;
+  }, 0);
 
   // Calculate total revenue from referrals
   const totalReferralRevenue = refundedReferrals
@@ -253,7 +256,7 @@ export const action = async ({ request }) => {
                 {
                   orderId: referrerOrder.id,
                   parentId: parentTransaction.id,
-                  amount: String(referral.refundAmount),
+                  amount: String(referral.rewardAmount || referral.refundAmount),
                   kind: "REFUND",
                   gateway: parentTransaction.gateway
                 }
@@ -289,7 +292,7 @@ export const action = async ({ request }) => {
         data: { status: "refunded" }
       });
 
-      const rewardAmount = referral.refundAmount;
+      const rewardAmount = referral.rewardAmount || referral.refundAmount;
       return { success: true, message: `Referral approved! $${rewardAmount} refunded to ${referral.referrerName} on order ${referrerOrder.name}` };
     } catch (error) {
       console.error("Error issuing refund:", error);
