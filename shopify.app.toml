@@ -17,6 +17,10 @@ api_version = "2025-10"
   uri = "/webhooks/orders/create"
 
   [[webhooks.subscriptions]]
+  topics = ["subscription_contracts/cancel"]
+  uri = "/webhooks/subscription/cancelled"
+
+  [[webhooks.subscriptions]]
   topics = ["app/scopes_update"]
   uri = "/webhooks/app/scopes_update"
 
@@ -26,7 +30,7 @@ api_version = "2025-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,write_customers,write_discounts,read_orders,write_orders,write_products"
+scopes = "read_customers,write_customers,write_discounts,read_orders,write_orders,write_products,read_own_subscription_contracts"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
