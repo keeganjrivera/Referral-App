@@ -72,7 +72,7 @@ export const action = async ({ request }) => {
   console.log(`Referrer found: ${referrer.email}`);
 
   // Get referee customer details
-  const customerId = order.customer?.id;
+  const customerId = order.customer?.admin_graphql_api_id || `gid://shopify/Customer/${order.customer?.id}`;
   if (!customerId) {
     console.log("No customer on order");
     return new Response();
@@ -99,7 +99,7 @@ export const action = async ({ request }) => {
       }`,
     {
       variables: {
-        id: `gid://shopify/Customer/${customerId}`
+        id: customerId
       }
     }
   );
