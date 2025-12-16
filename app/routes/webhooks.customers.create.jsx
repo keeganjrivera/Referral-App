@@ -1,4 +1,5 @@
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 export const action = async ({ request }) => {
   const { topic, shop, session, admin, payload } = await authenticate.webhook(request);
@@ -43,6 +44,40 @@ export const action = async ({ request }) => {
   console.log(`New customer webhook: ${customer.email}, generating code: ${code}`);
   console.log(`Customer ID: ${customer.id}`);
   console.log(`Customer admin_graphql_api_id: ${customer.admin_graphql_api_id}`);
+
+  // Get shop settings to configure discount properly
+  const settings = await db.settings.findFirst();
+  const discountPercentage = (settings?.discountPercentage || 10) / 100; // Convert to decimal
+
+  // Build discount configuration based on settings
+  const discountConfig = {
+    title: `Referral - ${code}`,
+    code: code,
+    startsAt: new Date().toISOString(),
+    customerSelection: {
+      all: true
+    },
+    customerGets: {
+      value: {
+        percentage: discountPercentage
+      },
+      items: {
+        all: true
+      }
+    },
+    appliesOncePerCustomer: true,
+    combinesWith: {
+      productDiscounts: false,
+      orderDiscounts: false,
+      shippingDiscounts: settings?.allowShippingCombos ?? true
+    }
+  };
+
+  // Add purchase type restriction if set to Subscription
+  if (settings?.purchaseType === "Subscription") {
+    discountConfig.recurringCycleLimit = 1; // Only applies to first subscription cycle
+  }
+  // For "One-time" or "Any", don't add recurringCycleLimit (default behavior)
 
   // Save code to customer metafield
   const metafieldResponse = await admin.graphql(
@@ -97,23 +132,7 @@ export const action = async ({ request }) => {
       }`,
     {
       variables: {
-        basicCodeDiscount: {
-          title: `Referral - ${code}`,
-          code: code,
-          startsAt: new Date().toISOString(),
-          customerSelection: {
-            all: true
-          },
-          customerGets: {
-            value: {
-              percentage: 0.1
-            },
-            items: {
-              all: true
-            }
-          },
-          appliesOncePerCustomer: true
-        }
+        basicCodeDiscount: discountConfig
       }
     }
   );

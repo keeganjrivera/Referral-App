@@ -332,6 +332,15 @@ export const action = async ({ request }) => {
 
   // Handle code generation
   if (actionType === "generate") {
+    const { session } = await authenticate.admin(request);
+
+    // Get shop settings to configure discounts properly
+    const settings = await db.settings.findUnique({
+      where: { shop: session.shop }
+    });
+
+    const discountPercentage = (settings?.discountPercentage || 10) / 100; // Convert to decimal
+
     const customersResponse = await admin.graphql(
       `#graphql
         query {
@@ -397,6 +406,35 @@ export const action = async ({ request }) => {
         }
       );
 
+      // Build discount configuration based on settings
+      const discountConfig = {
+        title: `Referral - ${code}`,
+        code: code,
+        startsAt: new Date().toISOString(),
+        customerSelection: {
+          all: true
+        },
+        customerGets: {
+          value: {
+            percentage: discountPercentage
+          },
+          items: {
+            all: true
+          }
+        },
+        appliesOncePerCustomer: true,
+        combinesWith: {
+          productDiscounts: false,
+          orderDiscounts: false,
+          shippingDiscounts: settings?.allowShippingCombos ?? true
+        }
+      };
+
+      // Add purchase type restriction if set to Subscription
+      if (settings?.purchaseType === "Subscription") {
+        discountConfig.recurringCycleLimit = 1; // Only applies to first subscription cycle
+      }
+
       await admin.graphql(
         `#graphql
           mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
@@ -412,23 +450,7 @@ export const action = async ({ request }) => {
           }`,
         {
           variables: {
-            basicCodeDiscount: {
-              title: `Referral - ${code}`,
-              code: code,
-              startsAt: new Date().toISOString(),
-              customerSelection: {
-                all: true
-              },
-              customerGets: {
-                value: {
-                  percentage: 0.1
-                },
-                items: {
-                  all: true
-                }
-              },
-              appliesOncePerCustomer: true
-            }
+            basicCodeDiscount: discountConfig
           }
         }
       );
@@ -440,7 +462,7 @@ export const action = async ({ request }) => {
           headers: {
             'Authorization': `Klaviyo-API-Key ${process.env.KLAVIYO_API_KEY}`,
             'Content-Type': 'application/json',
-            'revision': '2024-10-15'
+            'revision': '2025-02-05'
           },
           body: JSON.stringify({
             data: {
