@@ -93,18 +93,10 @@ export const action = async ({ request }) => {
     }
   };
 
-  // Set purchase type based on settings
-  if (settings?.purchaseType === "Subscription") {
-    discountConfig.appliesOnSubscription = true;
-    discountConfig.appliesOnOneTimePurchase = false;
-  } else if (settings?.purchaseType === "One-time") {
-    discountConfig.appliesOnSubscription = false;
-    discountConfig.appliesOnOneTimePurchase = true;
-  } else {
-    // "Any" - applies to both
-    discountConfig.appliesOnSubscription = true;
-    discountConfig.appliesOnOneTimePurchase = true;
-  }
+  // Note: Purchase type (subscription vs one-time) is not controllable via
+  // discountCodeBasicCreate API. The fields appliesOnSubscription and
+  // appliesOnOneTimePurchase don't exist on DiscountCodeBasicInput.
+  // Basic discount codes work on all purchase types by default.
 
   console.log(`Discount config:`, JSON.stringify(discountConfig, null, 2));
 
