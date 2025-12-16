@@ -481,7 +481,7 @@ export const action = async ({ request }) => {
           headers: {
             'Authorization': `Klaviyo-API-Key ${process.env.KLAVIYO_API_KEY}`,
             'Content-Type': 'application/json',
-            'revision': '2025-02-05'
+            'revision': '2025-10-15'
           },
           body: JSON.stringify({
             data: {
