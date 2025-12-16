@@ -90,7 +90,7 @@ export const loader = async ({ request }) => {
   // Calculate totals from recent referrals only (approximate analytics)
   const refundedReferrals = recentReferrals.filter(r => r.status === 'refunded');
   const totalRefunds = refundedReferrals.length;
-  const totalRefundAmount = refundedReferrals.reduce((sum, r) => sum + parseFloat(r.refundAmount), 0);
+  const totalRefundAmount = refundedReferrals.reduce((sum, r) => sum + parseFloat(r.rewardAmount || r.refundAmount || 0), 0);
 
   // Calculate total revenue from referrals
   const totalReferralRevenue = refundedReferrals
@@ -102,6 +102,9 @@ export const loader = async ({ request }) => {
   const referralROI = referralCost > 0
     ? (((totalReferralRevenue - referralCost) / referralCost) * 100).toFixed(1)
     : 0;
+
+  // Calculate total pending payouts
+  const pendingPayouts = pendingReferrals.reduce((sum, r) => sum + parseFloat(r.rewardAmount || r.refundAmount || 0), 0);
 
   // Referral source breakdown
   const referralsBySource = {};
@@ -148,7 +151,8 @@ export const loader = async ({ request }) => {
     referralsWithFraud,
     totalReferralRevenue,
     referralROI,
-    referralsBySource
+    referralsBySource,
+    pendingPayouts
   };
 
   return { customers, pendingReferrals, allReferrals: recentReferrals, analytics, settings };
@@ -253,7 +257,7 @@ export const action = async ({ request }) => {
                 {
                   orderId: referrerOrder.id,
                   parentId: parentTransaction.id,
-                  amount: referral.refundAmount,
+                  amount: String(referral.rewardAmount || referral.refundAmount),
                   kind: "REFUND",
                   gateway: parentTransaction.gateway
                 }
@@ -289,7 +293,8 @@ export const action = async ({ request }) => {
         data: { status: "refunded" }
       });
 
-      return { success: true, message: `Referral approved! $50 refunded to ${referral.referrerName} on order ${referrerOrder.name}` };
+      const rewardAmount = referral.rewardAmount || referral.refundAmount;
+      return { success: true, message: `Referral approved! $${rewardAmount} refunded to ${referral.referrerName} on order ${referrerOrder.name}` };
     } catch (error) {
       console.error("Error issuing refund:", error);
       return { success: false, message: `Error issuing refund: ${error.message}` };
@@ -1242,7 +1247,7 @@ export default function Referrals() {
 
                               <s-text>${referral.orderTotal}</s-text>
 
-                              <s-text>${referral.refundAmount}</s-text>
+                              <s-text>${referral.rewardAmount || referral.refundAmount}</s-text>
 
                               <s-text>{referral.referralCode}</s-text>
 
@@ -1260,7 +1265,7 @@ export default function Referrals() {
                                   onClick={() => approve(referral.id)}
                                   variant="primary"
                                 >
-                                  Approve $50
+                                  Approve ${referral.rewardAmount || referral.refundAmount}
                                 </s-button>
                                 <s-button
                                   onClick={() => reject(referral.id)}
@@ -1321,7 +1326,7 @@ export default function Referrals() {
 
                                   <s-stack direction="block" gap="tight">
                                     <s-text weight="bold">Refund</s-text>
-                                    <s-text>${referral.refundAmount}</s-text>
+                                    <s-text>${referral.rewardAmount || referral.refundAmount}</s-text>
                                   </s-stack>
 
                                   <s-stack direction="block" gap="tight">
@@ -1335,7 +1340,7 @@ export default function Referrals() {
                                     onClick={() => approve(referral.id)}
                                     variant="primary"
                                   >
-                                    Approve $50
+                                    Approve ${referral.rewardAmount || referral.refundAmount}
                                   </s-button>
                                   <s-button
                                     onClick={() => reject(referral.id)}
@@ -1421,7 +1426,7 @@ export default function Referrals() {
 
                           <s-text>${referral.orderTotal}</s-text>
 
-                          <s-text>${referral.refundAmount}</s-text>
+                          <s-text>${referral.rewardAmount || referral.refundAmount}</s-text>
 
                           <s-text>{referral.referralCode}</s-text>
 
@@ -1493,7 +1498,7 @@ export default function Referrals() {
 
                               <s-stack direction="block" gap="tight">
                                 <s-text weight="bold">Refund</s-text>
-                                <s-text>${referral.refundAmount}</s-text>
+                                <s-text>${referral.rewardAmount || referral.refundAmount}</s-text>
                               </s-stack>
 
                               <s-stack direction="block" gap="tight">
@@ -1544,6 +1549,12 @@ export default function Referrals() {
                     <div className="stat-label">Total Paid Out</div>
                     <div className="stat-value">${analytics.totalRefundAmount.toFixed(2)}</div>
                     <div className="stat-label">In refunds</div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-label">Pending Payouts</div>
+                    <div className="stat-value" style={{ color: '#ff9800' }}>${analytics.pendingPayouts.toFixed(2)}</div>
+                    <div className="stat-label">Awaiting approval</div>
                   </div>
 
                   <div className="stat-card">

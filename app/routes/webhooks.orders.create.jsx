@@ -204,6 +204,29 @@ export const action = async ({ request }) => {
   console.log(`Referral Source: ${referralSource}`);
   console.log(`Referee Revenue: $${refereeRevenue}`);
 
+  // Load shop settings to get current reward amount
+  let settings = await db.settings.findUnique({
+    where: { shop: shop }
+  });
+
+  // Create default settings if none exist
+  if (!settings) {
+    settings = await db.settings.create({
+      data: {
+        shop: shop,
+        purchaseType: "Subscription",
+        discountPercentage: 10,
+        refundAmount: "50.00",
+        allowShippingCombos: true
+      }
+    });
+    console.log(`Created default settings for shop ${shop}`);
+  }
+
+  // Parse reward amount from settings
+  const rewardAmount = parseFloat(settings.refundAmount || "50.00");
+  console.log(`Reward amount for this referral: $${rewardAmount}`);
+
   // Store referral in database
   try {
     await db.referral.create({
@@ -220,7 +243,8 @@ export const action = async ({ request }) => {
         referralCode: referralCode.code,
         fraudFlags: JSON.stringify(fraudFlags),
         status: fraudFlags.length > 0 ? "pending" : "pending",
-        refundAmount: "50.00",
+        refundAmount: settings.refundAmount,
+        rewardAmount: rewardAmount, // Lock in the reward amount at creation time
         // NEW FIELDS
         referralSource: referralSource,
         refereeRevenue: refereeRevenue,

@@ -37,7 +37,8 @@ export const action = async ({ request }) => {
       referralCode: "RUSSELL50",
       fraudFlags: JSON.stringify([]),
       status: "pending",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -56,7 +57,8 @@ export const action = async ({ request }) => {
       referralCode: "KARINE50",
       fraudFlags: JSON.stringify(["SAME_EMAIL"]),
       status: "pending",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -75,7 +77,8 @@ export const action = async ({ request }) => {
       referralCode: "AYUMU50",
       fraudFlags: JSON.stringify(["SAME_NAME"]),
       status: "pending",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -94,7 +97,8 @@ export const action = async ({ request }) => {
       referralCode: "ERIC50",
       fraudFlags: JSON.stringify(["LOW_ORDER_VALUE"]),
       status: "pending",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -113,7 +117,8 @@ export const action = async ({ request }) => {
       referralCode: "SUS50",
       fraudFlags: JSON.stringify(["SAME_EMAIL", "SAME_NAME", "LOW_ORDER_VALUE", "SAME_ADDRESS"]),
       status: "pending",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -132,7 +137,8 @@ export const action = async ({ request }) => {
       referralCode: "APPROVED50",
       fraudFlags: JSON.stringify([]),
       status: "approved",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
@@ -151,7 +157,8 @@ export const action = async ({ request }) => {
       referralCode: "REJECT50",
       fraudFlags: JSON.stringify(["SAME_EMAIL"]),
       status: "rejected",
-      refundAmount: "50.00"
+      refundAmount: "50.00",
+      rewardAmount: 50.00
     }
   });
 
