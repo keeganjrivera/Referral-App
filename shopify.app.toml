@@ -1,37 +1,25 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "80f257f54743ca259e3dc67b2a3694b8"
-name = "Referrals"
-application_url = "https://pp-referral-program-34f504a1d961.herokuapp.com/"
+client_id = "2c7bfb17648cb59802f1c553cb6ad492"
+name = "Referral Program"
+application_url = "https://personalized-pool-referrals-v2.fly.dev"
 embedded = true
 
-[build]
-automatically_update_urls_on_dev = true
-
 [webhooks]
-api_version = "2026-01"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
-  topics = [ "customers/create" ]
-  uri = "/webhooks/customers/create"
-
-  [[webhooks.subscriptions]]
-  topics = [ "orders/create" ]
-  uri = "/webhooks/orders/create"
+api_version = "2025-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_orders,write_customers,write_discounts,write_orders,write_products"
+scopes = "read_customers,write_customers,write_discounts,read_orders,write_orders,write_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://pp-referral-program-34f504a1d961.herokuapp.com/api/auth",
-                  "https://pp-referral-program-34f504a1d961.herokuapp.com/auth/callback"
+redirect_urls = [
+  "https://personalized-pool-referrals-v2.fly.dev/auth/callback",
+  "https://personalized-pool-referrals-v2.fly.dev/auth/shopify/callback",
+  "https://personalized-pool-referrals-v2.fly.dev/api/auth/callback"
 ]
+
+[build]
+automatically_update_urls_on_dev = false
