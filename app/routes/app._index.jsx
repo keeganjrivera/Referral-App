@@ -334,10 +334,24 @@ export const action = async ({ request }) => {
   if (actionType === "generate") {
     const { session } = await authenticate.admin(request);
 
-    // Get shop settings to configure discounts properly
-    const settings = await db.settings.findUnique({
+    // Get or create shop settings to configure discounts properly
+    let settings = await db.settings.findUnique({
       where: { shop: session.shop }
     });
+
+    if (!settings) {
+      console.log(`[Bulk Generation] No settings found for shop ${session.shop}, creating defaults...`);
+      settings = await db.settings.create({
+        data: {
+          shop: session.shop,
+          purchaseType: "Subscription",
+          discountPercentage: 10,
+          refundAmount: "50.00",
+          allowShippingCombos: true
+        }
+      });
+      console.log(`[Bulk Generation] Created default settings`);
+    }
 
     console.log(`[Bulk Generation] Shop: ${session.shop}`);
     console.log(`[Bulk Generation] Settings:`, JSON.stringify(settings, null, 2));

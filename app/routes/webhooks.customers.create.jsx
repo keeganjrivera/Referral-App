@@ -46,10 +46,24 @@ export const action = async ({ request }) => {
   console.log(`Customer admin_graphql_api_id: ${customer.admin_graphql_api_id}`);
   console.log(`Shop: ${shop}`);
 
-  // Get shop settings to configure discount properly
-  const settings = await db.settings.findUnique({
+  // Get or create shop settings to configure discount properly
+  let settings = await db.settings.findUnique({
     where: { shop: shop }
   });
+
+  if (!settings) {
+    console.log(`No settings found for shop ${shop}, creating defaults...`);
+    settings = await db.settings.create({
+      data: {
+        shop: shop,
+        purchaseType: "Subscription",
+        discountPercentage: 10,
+        refundAmount: "50.00",
+        allowShippingCombos: true
+      }
+    });
+    console.log(`Created default settings for shop ${shop}`);
+  }
 
   console.log(`Settings loaded:`, JSON.stringify(settings, null, 2));
 
