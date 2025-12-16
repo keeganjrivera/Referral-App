@@ -83,7 +83,10 @@ export const action = async ({ request }) => {
       },
       items: {
         all: true
-      }
+      },
+      // Set purchase type based on settings
+      appliesOnSubscription: settings?.purchaseType === "Subscription" || settings?.purchaseType === "Any",
+      appliesOnOneTimePurchase: settings?.purchaseType === "One-time" || settings?.purchaseType === "Any"
     },
     appliesOncePerCustomer: true,
     combinesWith: {
@@ -92,11 +95,6 @@ export const action = async ({ request }) => {
       shippingDiscounts: settings?.allowShippingCombos ?? true
     }
   };
-
-  // Note: Purchase type (subscription vs one-time) is not controllable via
-  // discountCodeBasicCreate API. The fields appliesOnSubscription and
-  // appliesOnOneTimePurchase don't exist on DiscountCodeBasicInput.
-  // Basic discount codes work on all purchase types by default.
 
   console.log(`Discount config:`, JSON.stringify(discountConfig, null, 2));
 
