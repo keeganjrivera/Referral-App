@@ -447,17 +447,18 @@ export const action = async ({ request }) => {
         }
       };
 
-      // For subscriptions: don't set recurringCycleLimit to allow unlimited subscription renewals
-      // For one-time: set recurringCycleLimit to 0 to prevent use on subscriptions
-      if (settings?.purchaseType === "One-time") {
-        // Prevent from being used on subscriptions
-        discountConfig.recurringCycleLimit = 0;
-      } else if (settings?.purchaseType === "Subscription") {
-        // Allow on subscriptions - don't set limit (or set very high)
-        // Actually, let's not set recurringCycleLimit at all for subscriptions
-        // This allows it to apply to subscription purchases
+      // Set purchase type based on settings
+      if (settings?.purchaseType === "Subscription") {
+        discountConfig.appliesOnSubscription = true;
+        discountConfig.appliesOnOneTimePurchase = false;
+      } else if (settings?.purchaseType === "One-time") {
+        discountConfig.appliesOnSubscription = false;
+        discountConfig.appliesOnOneTimePurchase = true;
+      } else {
+        // "Any" - applies to both
+        discountConfig.appliesOnSubscription = true;
+        discountConfig.appliesOnOneTimePurchase = true;
       }
-      // For "Any" purchase type, don't set recurringCycleLimit
 
       await admin.graphql(
         `#graphql
