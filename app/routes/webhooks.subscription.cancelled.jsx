@@ -119,7 +119,7 @@ export const action = async ({ request }) => {
 
     // Optional: Update Klaviyo to mark them as inactive subscriber
     try {
-      await fetch('https://a.klaviyo.com/api/profiles/', {
+      await fetch('https://a.klaviyo.com/api/profile-import/', {
         method: 'POST',
         headers: {
           'Authorization': `Klaviyo-API-Key ${process.env.KLAVIYO_API_KEY}`,

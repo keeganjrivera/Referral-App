@@ -474,9 +474,9 @@ export const action = async ({ request }) => {
         }
       );
 
-      // Send referral code to Klaviyo
+      // Send referral code to Klaviyo (create or update profile)
       try {
-        const klaviyoResponse = await fetch('https://a.klaviyo.com/api/profiles/', {
+        const klaviyoResponse = await fetch('https://a.klaviyo.com/api/profile-import/', {
           method: 'POST',
           headers: {
             'Authorization': `Klaviyo-API-Key ${process.env.KLAVIYO_API_KEY}`,
