@@ -17,10 +17,6 @@ api_version = "2025-10"
   uri = "/webhooks/orders/create"
 
   [[webhooks.subscriptions]]
-  topics = ["subscription_contracts/cancel"]
-  uri = "/webhooks/subscription/cancelled"
-
-  [[webhooks.subscriptions]]
   topics = ["app/scopes_update"]
   uri = "/webhooks/app/scopes_update"
 
