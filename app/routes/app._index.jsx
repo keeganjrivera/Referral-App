@@ -339,6 +339,9 @@ export const action = async ({ request }) => {
       where: { shop: session.shop }
     });
 
+    console.log(`[Bulk Generation] Shop: ${session.shop}`);
+    console.log(`[Bulk Generation] Settings:`, JSON.stringify(settings, null, 2));
+
     const discountPercentage = (settings?.discountPercentage || 10) / 100; // Convert to decimal
 
     const customersResponse = await admin.graphql(
@@ -430,10 +433,17 @@ export const action = async ({ request }) => {
         }
       };
 
-      // Add purchase type restriction if set to Subscription
-      if (settings?.purchaseType === "Subscription") {
-        discountConfig.recurringCycleLimit = 1; // Only applies to first subscription cycle
+      // For subscriptions: don't set recurringCycleLimit to allow unlimited subscription renewals
+      // For one-time: set recurringCycleLimit to 0 to prevent use on subscriptions
+      if (settings?.purchaseType === "One-time") {
+        // Prevent from being used on subscriptions
+        discountConfig.recurringCycleLimit = 0;
+      } else if (settings?.purchaseType === "Subscription") {
+        // Allow on subscriptions - don't set limit (or set very high)
+        // Actually, let's not set recurringCycleLimit at all for subscriptions
+        // This allows it to apply to subscription purchases
       }
+      // For "Any" purchase type, don't set recurringCycleLimit
 
       await admin.graphql(
         `#graphql

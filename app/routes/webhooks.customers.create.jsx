@@ -44,9 +44,15 @@ export const action = async ({ request }) => {
   console.log(`New customer webhook: ${customer.email}, generating code: ${code}`);
   console.log(`Customer ID: ${customer.id}`);
   console.log(`Customer admin_graphql_api_id: ${customer.admin_graphql_api_id}`);
+  console.log(`Shop: ${shop}`);
 
   // Get shop settings to configure discount properly
-  const settings = await db.settings.findFirst();
+  const settings = await db.settings.findUnique({
+    where: { shop: shop }
+  });
+
+  console.log(`Settings loaded:`, JSON.stringify(settings, null, 2));
+
   const discountPercentage = (settings?.discountPercentage || 10) / 100; // Convert to decimal
 
   // Build discount configuration based on settings
@@ -73,11 +79,19 @@ export const action = async ({ request }) => {
     }
   };
 
-  // Add purchase type restriction if set to Subscription
-  if (settings?.purchaseType === "Subscription") {
-    discountConfig.recurringCycleLimit = 1; // Only applies to first subscription cycle
+  // For subscriptions: don't set recurringCycleLimit to allow unlimited subscription renewals
+  // For one-time: set recurringCycleLimit to 0 to prevent use on subscriptions
+  if (settings?.purchaseType === "One-time") {
+    // Prevent from being used on subscriptions
+    discountConfig.recurringCycleLimit = 0;
+  } else if (settings?.purchaseType === "Subscription") {
+    // Allow on subscriptions - don't set limit (or set very high)
+    // Actually, let's not set recurringCycleLimit at all for subscriptions
+    // This allows it to apply to subscription purchases
   }
-  // For "One-time" or "Any", don't add recurringCycleLimit (default behavior)
+  // For "Any" purchase type, don't set recurringCycleLimit
+
+  console.log(`Discount config:`, JSON.stringify(discountConfig, null, 2));
 
   // Save code to customer metafield
   const metafieldResponse = await admin.graphql(
